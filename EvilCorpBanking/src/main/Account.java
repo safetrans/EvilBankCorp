@@ -11,6 +11,18 @@ public class Account
 	private String acctNumber;
 	private double balance ;
 	private ArrayList<Transaction> transactions = new ArrayList<Transaction>();
+	private boolean isClosed=false;
+	
+	
+
+	public boolean isClosed()
+	{
+		return isClosed;
+	}
+	public void setClosed(boolean isClosed)
+	{
+		this.isClosed = isClosed;
+	}
 	public String getName()
 	{
 		return name;
@@ -83,9 +95,12 @@ public class Account
 	@Override
 	public String toString()
 	{
-		String returnStr= "name: " + name + "\n" +
+		String returnStr = String.format("%-80s","---------");
+		 returnStr +="\n" + "name: " + name + "\n" +
 				"account number :" + acctNumber + "\n";
 		returnStr += String.format("%-20s%-15s%15s%15s%15s", "Transaction Type","Date","Amount","Overdraft","Balance");
+		returnStr += "\n";
+		returnStr += String.format("%-20s%-15s%15s%15s%15s", "----------------","----","------","---------","-------");
 		returnStr += "\n";
 		Collections.sort(transactions);
 		for(int i =0; i < transactions.size(); i++)
@@ -100,7 +115,6 @@ public class Account
 			returnStr += "\n";
 		}
 		returnStr += "Balance = " + "$" + String.format("%.2f", balance);
-		return returnStr;
-				
+		return returnStr;		
 	}
 }

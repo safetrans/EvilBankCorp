@@ -46,6 +46,7 @@ public class AccountDB
 					currentAcct.setAcctNumber(parts[0]);
 					currentAcct.setName(parts[1]);
 					currentAcct.setBalance(Double.parseDouble(parts[2]));
+					currentAcct.setClosed(Boolean.parseBoolean(parts[3]));
 					
 					acctMap.put(currentAcct.getAcctNumber(), currentAcct);
 					
@@ -89,7 +90,7 @@ public class AccountDB
 				//write key, value pair
 				Account currentAcct = (Account)pair.getValue();
 				
-				writer.println(currentAcct.getAcctNumber() + delimiter + currentAcct.getName() + delimiter + currentAcct.getBalance());
+				writer.println(currentAcct.getAcctNumber() + delimiter + currentAcct.getName() + delimiter + currentAcct.getBalance() + delimiter + currentAcct.isClosed());
 				it.remove();
 			}
 			writer.close();

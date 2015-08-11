@@ -31,7 +31,53 @@ public class DevilCorpApp
 		HashMap<String,Account> acctMap = AccountDB.getAllAccounts();
 		
 		//promp user for entering an account using while loop
+		acctMap = inputAccounts(acctMap);
 		
+		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+		//after while loop, prompt user to enter account number
+		
+		String hasMoreAccount = "y";
+		
+		//start transactions
+		while(hasMoreAccount.equalsIgnoreCase("y"))
+		{
+			//save and refresh
+			AccountDB.saveAccounts(acctMap);
+			acctMap = AccountDB.getAllAccounts();
+			
+			System.out.println("Enter the account # of the transactions: ");
+			String accountNumber = sc.next();
+			sc.nextLine();
+
+			acctMap = processTransactions(accountNumber, acctMap);
+			
+			System.out.print("Is there any other account? y/n");
+			hasMoreAccount = sc.next();
+			sc.nextLine();
+		}
+		
+		
+		//save all account to file finally
+		AccountDB.saveAccounts(acctMap);
+	
+	}
+	
+	// method to close account and save to file
+	private static HashMap<String,Account> closeAccount(Account account,HashMap<String,Account> acctMap)
+	{
+		account.setClosed(true);
+		
+		acctMap.put(account.getAcctNumber(), account);
+		AccountDB.saveAccounts(acctMap);
+		acctMap = AccountDB.getAllAccounts();
+		
+		return acctMap;
+	}
+	
+	//method to input accounts
+	private static HashMap<String,Account> inputAccounts(HashMap<String,Account> acctMap)
+	{
+		Scanner sc = new Scanner(System.in);
 		String accountNumber = "";
 		Account account;
 		
@@ -65,103 +111,176 @@ public class DevilCorpApp
 				account.setName(sc.nextLine());
 				
 				// promp user for initial balance
-				System.out.print("Enter current balance: ");
-				account.setBalance(sc.nextDouble());
-				sc.nextLine();
-			}
-			
-			//add account to acctMap
-			acctMap.put(account.getAcctNumber(), account);
+				
+				boolean isValidAmount = false;
+				String amountStr = "";
+				while(!isValidAmount)
+				{
+					System.out.print("Please enter balance amount: ");
+					amountStr = sc.next();
+					isValidAmount = Validator.validateDoubleWithRange(amountStr, 0, 1000000000);
+					
+					if(!isValidAmount)
+					{
+						System.out.println("Invalid amount, please try again!");
+					}
+				}
+				account.setBalance(Double.parseDouble(amountStr));	
+				acctMap.put(account.getAcctNumber(), account);
+			}	
 			
 			System.out.print("Please enter account number (enter -1 to stop entering account): ");
 			accountNumber = sc.next();
 			sc.nextLine();
-		}
-		
-		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-		//after while loop, prompt user to enter account number
-		
-		String hasMoreAccount = "y";
-		
-
-		while(hasMoreAccount.equalsIgnoreCase("y"))
-		{
-			//save and refresh
-			AccountDB.saveAccounts(acctMap);
-			acctMap = AccountDB.getAllAccounts();
 			
-			System.out.println("Enter the account # of the transactions: ");
+		}
+		return acctMap;
+	}
+	
+	//method to process multiple transactions
+	private static HashMap<String,Account> processTransactions(String accountNumber,HashMap<String,Account> acctMap)
+	{
+		Scanner sc = new Scanner(System.in);
+		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+		while(!acctMap.containsKey(accountNumber))
+		{
+			System.out.println("Account not found, please reenter");
 			accountNumber = sc.next();
 			sc.nextLine();
-			
-			while(!acctMap.containsKey(accountNumber))
-			{
-				System.out.println("Account not found, please reenter");
-				accountNumber = sc.next();
-				sc.nextLine();
-			}
-			
-			Account currentAccount = acctMap.get(accountNumber);
+		}
+		
+		Account currentAccount = acctMap.get(accountNumber);
+		
+		if(currentAccount.isClosed())
+		{
+			System.out.println("Account has been closed");
+		}
+		else
+		{
 			System.out.println("Current Balance = " + currentAccount.getFriendlyBalance());
-			System.out.print("Please Enter a transaction type (c for check or d for deposit) or -1 to finish ");
+			System.out.print("Please Enter a transaction type (check, deposit, or close) or -1 to finish ");
 			String tranType = sc.nextLine();
 			
-			while(!tranType.equals("-1"))
+			//process one transaction
+			acctMap = processOneTransaction(acctMap,tranType,currentAccount);
+			
+			
+			if(!currentAccount.isClosed())
+			{
+				//calculate balance after all transactions
+				currentAccount.calculateBalance();
+				
+				//print out balance
+				System.out.println("The balance for account " + currentAccount.getAcctNumber() + " is " + currentAccount.getBalance());
+				System.out.println(currentAccount.toString());
+				//put account to the accounts map
+				acctMap.put(currentAccount.getAcctNumber(), currentAccount);
+			}
+			
+			
+
+		}
+		
+		return acctMap;
+	}
+	
+	//method to process one of the transaction
+	private static HashMap<String,Account> processOneTransaction(HashMap<String,Account> acctMap, String tranType, Account currentAccount)
+	{
+		Scanner sc = new Scanner(System.in);
+		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+		while(!tranType.equals("-1"))
+		{
+			//if close
+			if (tranType.equalsIgnoreCase("close"))
+			{
+				if(currentAccount.getBalance()==0)
+				{
+					acctMap = closeAccount(currentAccount,acctMap);
+					System.out.println("Account number " + currentAccount.getAcctNumber() + " has been closed.");
+					
+				}
+				else
+				{
+					System.out.println("Account number" + currentAccount.getAcctNumber() + " cannot be closed.");
+					
+				}
+				return acctMap;
+			}
+			else
 			{
 				Transaction transaction = new Transaction();
-				
 				//if a check
-				if (tranType.equalsIgnoreCase("c"))
+				if (tranType.equalsIgnoreCase("check"))
 				{
 					transaction.setCheck(true);
 				}
 				//deposit
-				else if (tranType.equalsIgnoreCase("d"))
+				else if (tranType.equalsIgnoreCase("deposit"))
 				{
 					transaction.setCheck(false);
 				}
+				else
+				{
+					System.out.print("Invalid input. Please Enter a transaction type (check, deposit, or close) or -1 to finish ");
+					tranType = sc.nextLine();
+					continue;
+				}
+				
+
 				//set amount
-				System.out.print("Please enter transaction amount: ");
-				transaction.setAmount(sc.nextDouble());
+				boolean isValidAmount = false;
+				String amountStr = "";
+				while(!isValidAmount)
+				{
+					System.out.print("Please enter transaction amount: ");
+					amountStr = sc.next();
+					isValidAmount = Validator.validateDoubleWithRange(amountStr, 0, 1000000000);
+					
+					if(!isValidAmount)
+					{
+						System.out.println("Invalid amount, please try again!");
+					}
+				}
+				
+				transaction.setAmount(Double.parseDouble(amountStr));
 				sc.nextLine();
 				
 				//set date
-				System.out.print("Please enter transaction date: ");
+				
+				String dateStr = "";
+				boolean isValidDate = false;
+				while(!isValidDate)
+				{
+					System.out.print("Please enter transaction date: (format: mm/dd/yyyy)");
+					dateStr = sc.next();
+					isValidDate = Validator.validateDateWithFormat(dateStr);
+					if(!isValidDate)
+					{
+						System.out.println("Invalid date format, please try again!");
+					}
+				}
+
 				try
 				{
-					transaction.setDate(sdf.parse(sc.nextLine()));
+					transaction.setDate(sdf.parse(dateStr));
 				} catch (ParseException e)
 				{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				sc.nextLine();
 				
 				//add transaction to current account
 				currentAccount.addTranscation(transaction);
 				
 				//prompt for next transaction
-				System.out.print("Enter a transaction type (c for check or d for deposit) or -1 to finish ");
+				System.out.print("Please Enter a transaction type (check, deposit, or close) or -1 to finish ");
 				tranType = sc.nextLine();
 			}
-			
-			//calculate balance after all transactions
-			currentAccount.calculateBalance();
-			
-			//print out balance
-			System.out.println("The balance for account " + currentAccount.getAcctNumber() + " is " + currentAccount.getBalance());
-			System.out.println(currentAccount.toString());
-			//put account to the accounts map
-			acctMap.put(currentAccount.getAcctNumber(), currentAccount);
-			
-			System.out.print("Is there any other account? y/n");
-			hasMoreAccount = sc.next();
-			sc.nextLine();
-		}
-		
-		
-		//save all account to file finally
-		AccountDB.saveAccounts(acctMap);
-	}
-	
 
+			
+		}
+		return acctMap;
+	}
 }
